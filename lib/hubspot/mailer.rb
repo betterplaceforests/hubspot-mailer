@@ -61,17 +61,21 @@ module Hubspot
 
       def single_send_params(mail)
         raise MissingTemplateError, "Missing emailId parameter." unless mail.email_id.present?
-        raise MissingRecipientError, "Missing recipient email."  unless mail.to.present?
+        raise MissingRecipientError, "Missing recipient emaul."  unless mail.to.present?
 
         data = {
           emailId: mail.email_id,
           message: { to: mail.to.first }
         }
 
-        data[:message][:from]   = mail.from.first if mail.from.present?
         data[:message][:cc]     = mail.cc         if mail.cc.present?
         data[:message][:bcc]    = mail.bcc        if mail.bcc.present?
         data[:message][:sendId] = mail.send_id    if mail.send_id.present?
+
+        if mail.from.present?
+          raise SenderAddressError.new, "Can't handle multiple from addresses" if mail.from.count > 1
+          data[:message][:from] = mail.header[:from].value
+        end
 
         if mail.reply_to.present?
           if mail.reply_to.size > 1
